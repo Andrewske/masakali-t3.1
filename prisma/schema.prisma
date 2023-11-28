@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+  // Further reading:
+  // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+  // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// Necessary for Next auth
+model Account {
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@index([userId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}
+
+model User {
+    id            String    @id @default(cuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    admin         Boolean?  @default(false)
+    accounts      Account[]
+    sessions      Session[]
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+model Villa {
+    id           Int @id
+    name         String  @unique
+    description  String  @db.Text
+    amenities    String  @db.Text
+
+    images       Image[]
+    reviews      Review[]
+    reservations Reservation[]
+    
+}
+
+model Image {
+    id            String @id @default(cuid())
+    url           String
+    position      Int
+    villaId       Int
+    active        Boolean @default(true)
+    villa         Villa  @relation(fields: [villaId], references: [id], onDelete: Cascade)
+
+    @@index([villaId])
+}
+
+model Review {
+    id            String @id @default(cuid())
+    name          String
+    imgUrl        String
+    date          DateTime
+    text          String @db.Text
+    villaId       Int
+    villa         Villa  @relation(fields: [villaId], references: [id], onDelete: Cascade)
+
+    @@index([villaId])
+}
+
+
+model Reservation {
+    id            String   @id @default(cuid())
+    smoobuId      Int      @unique
+    referenceId   String?   
+    villaId       Int
+    channelId     Int?
+    userId        String?
+    arrival       String
+    departure     String
+    createdAt     DateTime
+    guestName     String?
+    firstName     String?
+    lastName      String?
+    email         String?
+    phone         String?
+    adults        Int?       @default(1)
+    children      Int?       @default(0)
+    note          String?    @db.Text
+    extraNote     String?    @db.Text
+    amount        Float?     @default(0)
+    currency      String?    @default("IDR")
+    commission    Float?     @default(0)
+    cancelled     Boolean?   @default(false)
+
+    villa         Villa  @relation(fields: [villaId], references: [id], onDelete: Cascade)
+    @@index([villaId])
+}
