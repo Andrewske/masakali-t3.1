@@ -1,11 +1,11 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import getPricePerNight from '~/actions/smoobu/getPricePerNight';
 
 // This is a hook to manage the pricing of the reservation
 
 import type { villaIdsType } from '~/types/smoobu';
-import { calculateDiscount, daysBetweenDates } from '~/utils/calculations';
+import { daysBetweenDates } from '~/utils/calculations';
 import logError from '~/utils/logError';
 
 // It will accept checkIn, checkOut, villaId, discounts?
@@ -18,12 +18,11 @@ const usePricing = ({
   checkOut: string;
   villaId: villaIdsType;
 }) => {
-  // add a use effect, where when any of these props change then run these functions:
-  // getPricePerNight
-  // calculateNumDays
-  // calculateDiscount
-  // calculateTaxes
-  // calculateTotal
+  const [pricePerNight, setPricePerNight] = useState<number | null>(null);
+  const [numDays, setNumDays] = useState<number | null>(null);
+  const [discount, setDiscount] = useState<number | null>(null);
+  const [taxes, setTaxes] = useState<number | null>(null);
+  const [total, setTotal] = useState<number | null>(null);
 
   useEffect(() => {
     const calculateTotals = async () => {
@@ -32,13 +31,10 @@ const usePricing = ({
         checkOut,
         villaId,
       });
-      const numDays = daysBetweenDates(checkIn, checkOut);
-      if (pricePerNight) {
-        const discount = pricePerNight * 0.1;
-        const taxes = pricePerNight * 0.11;
-        const total = (pricePerNight - discount + taxes) * numDays;
 
-        // then save all of these values to the zustand state
+      if (pricePerNight) {
+        setPricePerNight(pricePerNight);
+        setNumDays(daysBetweenDates(checkIn, checkOut));
       } else {
         throw new Error(`No price found for ${villaId} ${checkIn} ${checkOut}`);
       }
@@ -49,6 +45,18 @@ const usePricing = ({
     });
   }, [checkIn, checkOut, villaId]);
 
-  // then save all of these values to the zustand state
-  // return the values
+  useEffect(() => {
+    if (pricePerNight && numDays) {
+      const discount = pricePerNight * 0.1;
+      const taxes = pricePerNight * 0.11;
+      const total = (pricePerNight - discount + taxes) * numDays;
+      setDiscount(discount);
+      setTaxes(taxes);
+      setTotal(total);
+    }
+  }, [pricePerNight, numDays]);
+
+  return { pricePerNight, numDays, discount, taxes, total };
 };
+
+export default usePricing;
